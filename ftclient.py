@@ -33,7 +33,7 @@ DATA_PORT       = sys.argv[4]
 control = connect(HOST, CONTROL_PORT)
 
 # Send command
-control.sendall(COMMAND + " " + DATA_PORT)
+control.sendall(HOST + " " + COMMAND + " " + DATA_PORT)
 
 # Response indicates on which connection to receive (control/data)
 response = control.recv(1024)

@@ -219,7 +219,7 @@ int acceptConnection(int sockfd, string type) {
 void receiveCommand(int new_fd, char* portno) {
     int data_fd, data_new_fd, numbytes;
     char buffer[MAXDATASIZE];
-    string command, temp_port, listing, type;
+    string host, command, temp_port, listing, type;
     char* data_port;
 
     // recv returns number of bytes read into the buffer
@@ -237,7 +237,8 @@ void receiveCommand(int new_fd, char* portno) {
     // Convert buffer to stringstream to read from
     istringstream StrStream(buffer);
 
-    // Extract command and data port
+    // Extract host, command, data port
+    StrStream >> host;
     StrStream >> command;
     StrStream >> temp_port;
 
@@ -260,7 +261,7 @@ void receiveCommand(int new_fd, char* portno) {
     if (command == "-l") {
         cout << "List directory requested on port " << data_port << endl;
         listing = listDirectory();
-        cout << "Sending directory contents to " << data_port << endl;
+        cout << "Sending directory contents to " << host << ":" << data_port << endl;
         sendMessage(listing, data_new_fd);
         close(data_new_fd);
         exit(0);
