@@ -52,7 +52,7 @@ using namespace std;
 // Function prototypes
 int startUp(char* portno);
 int acceptConnection(int sockfd, string type);
-void receiveCommand(int new_fd, char* portno);
+void handleRequest(int new_fd, char* portno);
 string listDirectory();
 void sendMessage(string message, int new_fd);
 void sigchld_handler(int s);
@@ -84,6 +84,8 @@ int main(int argc, char *argv[]) {
     int port = atoi(argv[1]);
     if (port < 1024 || port > 65535) {
        fprintf(stderr, "Usage: %s <port number>\n", argv[0]);
+       // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Registered_ports
+       // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic.2C_private_or_ephemeral_ports
        fprintf(stderr, "Port number must be between 1024 and 65535\n");
        exit(1);
     }
@@ -106,7 +108,7 @@ int main(int argc, char *argv[]) {
             // Child doesn't need the listener
             close(sockfd);
 
-            receiveCommand(new_fd, portno);
+            handleRequest(new_fd, portno);
         }
 
         // Parent doesn't need this
@@ -229,16 +231,17 @@ int acceptConnection(int sockfd, string type) {
     return new_fd;
 }
 
-/* receiveCommand
+/* handleRequest
  * 
- * Receive command over stream socket
+ * Handle command from client
  */
-void receiveCommand(int new_fd, char* portno) {
+void handleRequest(int new_fd, char* portno) {
     int data_fd, data_new_fd, numbytes;
     char buffer[MAXDATASIZE];
     string host, command, temp_port, listing, filename, type;
     char* data_port;
 
+    // Receive command only
     // recv returns number of bytes read into the buffer
     if ((numbytes = recv(new_fd, buffer, MAXDATASIZE - 1, 0)) == -1) {
         perror("recv");
@@ -248,16 +251,33 @@ void receiveCommand(int new_fd, char* portno) {
     // Null-terminate
     buffer[numbytes] = '\0';
 
-    // Display message
-    // printf("%s\n", buffer);
+    // Acknowledge receipt of buffer
+    string bufferstr(buffer);
+    sendMessage(bufferstr, new_fd);
+
+    // Receive full request
+    if ((numbytes = recv(new_fd, buffer, MAXDATASIZE - 1, 0)) == -1) {
+        perror("recv");
+        exit(1);
+    }
 
     // Convert buffer to stringstream to read from
     istringstream StrStream(buffer);
 
-    // Extract host, command, data port
-    StrStream >> host;
-    StrStream >> command;
-    StrStream >> temp_port;
+    // list: extract host, command, data port
+    if (bufferstr == "-l") {
+        StrStream >> host;
+        StrStream >> command;
+        StrStream >> temp_port;
+    }
+
+    // get: extract host, command, filename, data port
+    if (bufferstr == "-g") {
+        StrStream >> host;
+        StrStream >> command;
+        StrStream >> filename;
+        StrStream >> temp_port;
+    }
 
     // Convert data port from string to const char* to char*
     const char* const_temp_port = temp_port.c_str();
@@ -286,7 +306,8 @@ void receiveCommand(int new_fd, char* portno) {
 
     if (command == "-g") {
         cout << "File \"" << filename << "\" requested on port " << data_port << endl;
-        cout << "Sending \"" << filename << "\" to " << host << ":" << data_port << endl;   
+        cout << "Sending \"" << filename << "\" to " << host << ":" << data_port << endl;
+        sendMessage("DUMMY TEXT", data_new_fd);
     }
 }
 
