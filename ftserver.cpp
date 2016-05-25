@@ -51,7 +51,7 @@ using namespace std;
 
 // Function prototypes
 int startUp(char* portno);
-int acceptConnection(int sockfd);
+int acceptConnection(int sockfd, string type);
 void receiveCommand(int new_fd, char* portno);
 string listDirectory();
 void sendMessage(string message, int new_fd);
@@ -61,6 +61,7 @@ void *get_in_addr(struct sockaddr *sa);
 int main(int argc, char *argv[]) {
     int sockfd, new_fd; // Listen on sockfd, new connection on new_fd
     char* portno;       // Port number
+    string type;        // Control/Data
 
     // Check command line arguments count
     // argv[0] = Program name
@@ -72,23 +73,23 @@ int main(int argc, char *argv[]) {
 
     portno = argv[1];
 
-    // Start connection
+    // Start control connection
     sockfd = startUp(portno);
+    type = "CONTROL";
+
+    cout << "Server open on " << portno << endl;
 
     // Loop forever
     while (1) {
-        // Accept connection
-        new_fd = acceptConnection(sockfd);
+        // Accept connection on control connection
+        new_fd = acceptConnection(sockfd, type);
 
         // Child process
         if (!fork()) { 
             // Child doesn't need the listener
             close(sockfd);
 
-            // Alternate receiving and sending
-            while (1) {
-                receiveCommand(new_fd, portno);
-            }
+            receiveCommand(new_fd, portno);
         }
 
         // Parent doesn't need this
@@ -172,8 +173,6 @@ int startUp(char* portno) {
         exit(1);
     }
 
-    cout << "Server open on " << portno << endl;
-
     return sockfd;
 }
 
@@ -181,7 +180,7 @@ int startUp(char* portno) {
  * 
  * Accept queued connection and create new socket file descriptor
  */
-int acceptConnection(int sockfd) {
+int acceptConnection(int sockfd, string type) {
     // New connection so original connection is still listening
     // for other new connections
     int new_fd;
@@ -198,9 +197,11 @@ int acceptConnection(int sockfd) {
         exit(1);
     }
 
-    // Lookup host name for incoming connection
-    getnameinfo((struct sockaddr *)&their_addr, sin_size, host, sizeof host, service, sizeof service, 0);
-    cout << "Connection from " << host << endl;
+    if (type == "CONTROL") {
+        // Lookup host name for incoming connection
+        getnameinfo((struct sockaddr *)&their_addr, sin_size, host, sizeof host, service, sizeof service, 0);
+        cout << "Connection from " << host << endl;
+    }
     
     // Convert IPv4/IPv6 addresses from binary to text form
     // inet_ntop(their_addr.ss_family,
@@ -216,10 +217,10 @@ int acceptConnection(int sockfd) {
  * Receive command over stream socket
  */
 void receiveCommand(int new_fd, char* portno) {
-    int numbytes;
+    int data_fd, data_new_fd, numbytes;
     char buffer[MAXDATASIZE];
-    string command, clientport;
-    string listing;
+    string command, temp_port, listing, type;
+    char* data_port;
 
     // recv returns number of bytes read into the buffer
     if ((numbytes = recv(new_fd, buffer, MAXDATASIZE - 1, 0)) == -1) {
@@ -236,18 +237,32 @@ void receiveCommand(int new_fd, char* portno) {
     // Convert buffer to stringstream to read from
     istringstream StrStream(buffer);
 
-    // Extract command and clientport
+    // Extract command and data port
     StrStream >> command;
-    StrStream >> clientport;
+    StrStream >> temp_port;
+
+    // Convert data port from string to const char* to char*
+    const char* const_temp_port = temp_port.c_str();
+    strcpy(data_port, const_temp_port);
+
+    // Start data connection
+    data_fd = startUp(data_port);
+    type = "DATA";
+
+    // Tell client to connect to data connection
+    sendMessage("DATA", new_fd);
+
+    // Accept connection on data connection
+    data_new_fd = acceptConnection(data_fd, type);
 
     // Check command
     // list
     if (command == "-l") {
-        cout << "List directory requested on port " << clientport << endl;
+        cout << "List directory requested on port " << data_port << endl;
         listing = listDirectory();
-        cout << "Sending directory contents to " << clientport << endl;
-        sendMessage(listing, new_fd);
-        close(new_fd);
+        cout << "Sending directory contents to " << data_port << endl;
+        sendMessage(listing, data_new_fd);
+        close(data_new_fd);
         exit(0);
     }
 }
