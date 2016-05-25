@@ -71,6 +71,23 @@ int main(int argc, char *argv[]) {
        exit(1);
     }
 
+    // Validate parameter
+    // int valid = 1;
+    // for (int i = 0; i < strlen(argv[1]); i++) {
+    //     if (!isdigit(argv[1][i])) {
+    //         valid = 0;
+    //         break;
+    //     }
+    // }
+
+    // Validate parameter
+    int port = atoi(argv[1]);
+    if (port < 1024 || port > 65535) {
+       fprintf(stderr, "Usage: %s <port number>\n", argv[0]);
+       fprintf(stderr, "Port number must be between 1024 and 65535\n");
+       exit(1);
+    }
+
     portno = argv[1];
 
     // Start control connection
@@ -219,7 +236,7 @@ int acceptConnection(int sockfd, string type) {
 void receiveCommand(int new_fd, char* portno) {
     int data_fd, data_new_fd, numbytes;
     char buffer[MAXDATASIZE];
-    string host, command, temp_port, listing, type;
+    string host, command, temp_port, listing, filename, type;
     char* data_port;
 
     // recv returns number of bytes read into the buffer
@@ -265,6 +282,11 @@ void receiveCommand(int new_fd, char* portno) {
         sendMessage(listing, data_new_fd);
         close(data_new_fd);
         exit(0);
+    }
+
+    if (command == "-g") {
+        cout << "File \"" << filename << "\" requested on port " << data_port << endl;
+        cout << "Sending \"" << filename << "\" to " << host << ":" << data_port << endl;   
     }
 }
 

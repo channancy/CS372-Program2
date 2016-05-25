@@ -19,15 +19,24 @@ def connect(host, port):
             continue
         break
     if s is None:
-        print 'could not open socket on port ' + port
+        print "Error: Could not open socket on port " + port
         sys.exit(1)
 
     return s
 
-HOST            = sys.argv[1]
-CONTROL_PORT    = sys.argv[2]
-COMMAND         = sys.argv[3]
-DATA_PORT       = sys.argv[4]
+if (len(sys.argv) == 5):
+    HOST            = sys.argv[1]
+    CONTROL_PORT    = sys.argv[2]
+    COMMAND         = sys.argv[3]
+    DATA_PORT       = sys.argv[4]
+elif (len(sys.argv) == 6):
+    HOST            = sys.argv[1]
+    CONTROL_PORT    = sys.argv[2]
+    COMMAND         = sys.argv[3]
+    FILENAME        = sys.argv[4]
+    DATA_PORT       = sys.argv[5]
+else:
+    print "Usage"
 
 # Connect to control connection
 control = connect(HOST, CONTROL_PORT)
@@ -43,12 +52,13 @@ if response == "DATA":
     # Connect to data connection
     data = connect(HOST, DATA_PORT)
     response = data.recv(1024)
+    # list
+    if COMMAND == "-l":
+        print "Receiving directory structure from " + HOST + ":" + DATA_PORT
+        print response
+    if COMMAND == "-g":
+        print 'Receiving "' + FILENAME + '" from' + HOST + ":" + DATA_PORT
+        print "File transfer complete"
 
 # Close control connection
 control.close()
-
-# list
-if COMMAND == "-l":
-    print 'Receiving directory structure from ' + HOST + ':' + DATA_PORT;
-
-print response
