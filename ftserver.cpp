@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
        fprintf(stderr, "Usage: %s <port number>\n", argv[0]);
        // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Registered_ports
        // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic.2C_private_or_ephemeral_ports
-       fprintf(stderr, "Port number must be between 1024 and 65535\n");
+       fprintf(stderr, "Port number must be an integer between 1024 and 65535\n");
        exit(1);
     }
 

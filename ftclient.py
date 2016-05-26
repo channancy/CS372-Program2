@@ -6,10 +6,49 @@ Program 2
 
 Sources cited:
 https://docs.python.org/2/library/socket.html
+http://stackoverflow.com/questions/82831/how-to-check-whether-a-file-exists-using-python
 """
 
 import socket
 import sys
+import os.path
+
+def validateParameters(target_command):
+    """
+    Validate command line argument values
+    """
+    valid = True
+
+    # Check if integer
+    if CONTROL_PORT.isdigit():
+        # Check against range of ports
+        if int(CONTROL_PORT) < 1024 or int(CONTROL_PORT) > 65535:
+            valid = False
+            print "Control port must be an integer between 1024 and 65535"
+    # Not integer is invalid
+    else:
+        valid = False
+        print "Control port must be an integer between 1024 and 65535"
+
+    # Check if valid command
+    if COMMAND != target_command:
+        valid = False
+
+    # Check if integer
+    if DATA_PORT.isdigit():
+        # Check against range of ports
+        if int(DATA_PORT) < 1024 or int(DATA_PORT) > 65535:
+            valid = False
+            print "Data port must be an integer between 1024 and 65535"
+    # Not integer is invalid
+    else:
+        valid = False
+        print "Data port must be an integer between 1024 and 65535"
+
+    # Check if failed any requirements
+    if valid == False:
+        print "Usage: python " + sys.argv[0] + " <server host> <server port> <command: -l | -g filename> <data port>"
+        exit(1)
 
 def initiateContact(host, port):
     """
@@ -94,13 +133,16 @@ def receiveFile():
 # Main Program
 #----------------------------------------
 
-# Check command line arguments
+# Validate command line arguments
 # Length of 5 means filename not included
 if len(sys.argv) == 5:
     HOST            = sys.argv[1]
     CONTROL_PORT    = sys.argv[2]
     COMMAND         = sys.argv[3]
     DATA_PORT       = sys.argv[4]
+
+    # Should be list command
+    validateParameters("-l")
 
 # Length of 6 means filename was included
 elif len(sys.argv) == 6:
@@ -109,6 +151,20 @@ elif len(sys.argv) == 6:
     COMMAND         = sys.argv[3]
     FILENAME        = sys.argv[4]
     DATA_PORT       = sys.argv[5]
+
+    # Should be get command
+    validateParameters("-g")
+
+    # Handle duplicate file
+    if os.path.isfile(FILENAME):
+        print FILENAME + " already exists in the directory. Overwrite the file? (y/n)"
+        overwrite = raw_input()
+        # Case insensitive comparison
+        if overwrite.lower() == "y":
+            print FILENAME + " will be requested and overwritten."
+        else:
+            print FILENAME + " will not be requested. Exiting now."
+            exit(0)
 
 # Improper usage
 else:
