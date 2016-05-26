@@ -2,18 +2,19 @@
  * Nancy Chan
  * CS 372
  * 
- * Program 1
- * Description: A simple chat system that works for a pair of users
+ * Program 2
+ * Description: A simple 2-connection client-server file transfer system
  * 
- * Filename: chatserve.cpp
- * Usage: chatserve <port number>
- * Description: Chat Server
- * - Gets the user's handle by initial query and displays handle as
- *   a prompt and prepends it to all messages sent.
- * - Waits on a port for a client request.
- * - Alternates sending/receiving messages with a connected client
- *   until the connection is closed by either with '\quit'
- * - The process is repeated until the user terminates it with Ctrl+C
+ * Filename: ftserver.cpp
+ * Usage: ftserver <port number>
+ * Description: File Transfer Server
+ * - Starts on a host and validates command line parameter (port number)
+ * - Waits on a port for a client request
+ * - Establishes a TCP control connection (P) with the client
+ * - Interprets client commands and sends control messages on P
+ * - Establishes a TCP data connection (Q) with the client
+ * - Sends either a directory listing or contents of a file on Q
+ * - Repeats until terminated by a supervisor
  *
  * Sources cited:
  * Beej's Guide to Network Programming - https://beej.us/guide/bgnet/
@@ -25,6 +26,8 @@
  * http://cboard.cprogramming.com/cplusplus-programming/130444-how-do-you-split-string-multiple-words-into-single-words.html
  * http://stackoverflow.com/questions/12862739/convert-string-to-char
  * http://stackoverflow.com/questions/3138600/correct-use-of-stat-on-c
+ * https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Registered_ports
+ * https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic.2C_private_or_ephemeral_ports
  */
 
 #include <iostream>
@@ -80,8 +83,6 @@ int main(int argc, char *argv[]) {
     int port = atoi(argv[1]);
     if (port < 1024 || port > 65535) {
        fprintf(stderr, "Usage: %s <port number>\n", argv[0]);
-       // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Registered_ports
-       // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic.2C_private_or_ephemeral_ports
        fprintf(stderr, "Port number must be an integer between 1024 and 65535\n");
        exit(1);
     }
@@ -101,13 +102,13 @@ int main(int argc, char *argv[]) {
 
         // Child process
         if (!fork()) { 
-            // Child doesn't need the listener
+            // Child does not need the listener
             close(sockfd);
-
+            // Handle request from client
             handleRequest(new_fd, portno);
         }
 
-        // Parent doesn't need this
+        // Parent does not need this
         close(new_fd);
     }
 
@@ -212,6 +213,7 @@ int acceptConnection(int sockfd, string type) {
         exit(1);
     }
 
+    // Control connection
     if (type == "CONTROL") {
         // Lookup host name for incoming connection
         getnameinfo((struct sockaddr *)&their_addr, sin_size, host, sizeof host, service, sizeof service, 0);
@@ -288,18 +290,28 @@ void handleRequest(int new_fd, char* portno) {
     // list command
     if (command == "-l") {
         cout << "List directory requested on port " << data_port << endl;
+        
+        // Get directory listing
         listing = listDirectory();
+
         cout << "Sending directory contents to " << host << ":" << data_port << endl;
+        
+        // Send directory listing
         sendMessage(listing, data_new_fd);
+        
+        // Close data connection
         close(data_new_fd);
         exit(0);
     }
 
     // get command
     if (command == "-g") {
+        // Convert from string to const char*
         const char* const_filename = filename.c_str();
+
+        // Open file
         int fd = open(const_filename, O_RDONLY);
-        // If cannot open file for reading, print error and exit
+        // If cannot open file for reading
         if (fd == -1) {
             cout << "File not found. Sending error message to " << host << ":" << portno << endl;
             sendMessage("FILE NOT FOUND", new_fd);
@@ -317,6 +329,10 @@ void handleRequest(int new_fd, char* portno) {
         char contents[filesize];
         // Read file contents
         int r = read(fd, contents, filesize);
+        if (r == -1) {
+            cout << "Error reading file" << endl;
+            exit(1)
+        }
 
         // Variables for send loop
         int bytes_to_send = strlen(contents);
@@ -372,6 +388,10 @@ void sendMessage(string message, int new_fd) {
     }
 }
 
+/* listDirectory
+ * 
+ * Get directory listing
+ */
 string listDirectory() {
     DIR *d;
     struct dirent *dir;
