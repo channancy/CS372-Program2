@@ -44,6 +44,7 @@
 #include <signal.h>
  // File control options
 #include <fcntl.h>
+#include <sys/stat.h>
 using namespace std;
 
 // Number of pending connections queue will hold
@@ -310,7 +311,6 @@ void handleRequest(int new_fd, char* portno) {
     }
 
     if (command == "-g") {
-    
         const char* const_filename = filename.c_str();
         int fd = open(const_filename, O_RDONLY);
         // If cannot open file for reading, print error and exit
@@ -318,10 +318,21 @@ void handleRequest(int new_fd, char* portno) {
             cout << "File does not exist" << endl;
             exit(1);
         }
-        
-        int r = read(fd, buffer, MAXDATASIZE);
 
-        int bytes_to_send = strlen(buffer) - 1;
+        struct stat st;
+
+        // stat() returns -1 on error. Skipping check in this example
+        stat(const_filename, &st);
+        // printf("File size: %d bytes\n", st.st_size);
+
+        char contents[st.st_size];
+
+        int r = read(fd, contents, st.st_size);
+
+        int bytes_to_send = strlen(contents);
+
+        cout << "bytes_to_send: " << bytes_to_send << endl;
+
         int bytes_sent_total = 0;
         int bytes_sent;
 
@@ -330,10 +341,10 @@ void handleRequest(int new_fd, char* portno) {
         while (bytes_sent_total != bytes_to_send) {
 
             if (bytes_to_send - bytes_sent_total < 1000) {
-                bytes_sent = send(data_new_fd, buffer + bytes_sent_total, (bytes_to_send - bytes_sent_total), 0);
+                bytes_sent = send(data_new_fd, contents + bytes_sent_total, (bytes_to_send - bytes_sent_total), 0);
             }
             else {
-                bytes_sent = send(data_new_fd, buffer + bytes_sent_total, 1000, 0);
+                bytes_sent = send(data_new_fd, contents + bytes_sent_total, 1000, 0);
             }
 
             if (bytes_sent < 0) {
@@ -343,6 +354,7 @@ void handleRequest(int new_fd, char* portno) {
 
             bytes_sent_total = bytes_sent_total + bytes_sent;
         }
+        
         cout << "File \"" << filename << "\" requested on port " << data_port << endl;
         cout << "Sending \"" << filename << "\" to " << host << ":" << data_port << endl;
         // sendMessage("DUMMY TEXT", data_new_fd);
