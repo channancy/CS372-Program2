@@ -3,6 +3,17 @@ Nancy Chan
 CS 372
 
 Program 2
+Description: A simple 2-connection client-server file transfer system
+
+Filename: ftclient.py
+Usage: python ftclient.py <server host> <server port> <-l | -g filename> <data port>
+Description: File Transfer Client
+- Starts on a host and validates command line parameters
+- Establishes a TCP control connection (P) with the server
+- Sends commands and receives control messages on P
+- Establishes a TCP data connection (Q) with the server
+- Receives either a directory listing or contents of a file on Q
+- Closes P
 
 Sources cited:
 https://docs.python.org/2/library/socket.html

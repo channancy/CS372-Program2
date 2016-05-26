@@ -14,6 +14,7 @@
  * - Interprets client commands and sends control messages on P
  * - Establishes a TCP data connection (Q) with the client
  * - Sends either a directory listing or contents of a file on Q
+ * - Closes Q
  * - Repeats until terminated by a supervisor
  *
  * Sources cited:
