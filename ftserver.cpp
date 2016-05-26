@@ -318,10 +318,13 @@ void handleRequest(int new_fd, char* portno) {
             cout << "File does not exist" << endl;
             exit(1);
         }
+        
         int r = read(fd, buffer, MAXDATASIZE);
-        int bytes_to_send = strlen(buffer);
+
+        int bytes_to_send = strlen(buffer) - 1;
         int bytes_sent_total = 0;
         int bytes_sent;
+
         // Loop to ensure receive/send routines finishes job before continuing
         // Break transmission every 1000 characters
         while (bytes_sent_total != bytes_to_send) {

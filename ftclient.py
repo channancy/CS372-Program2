@@ -90,14 +90,19 @@ response = control.recv(1024)
 if response == "DATA":
     # Connect to data connection
     data = initiateContact(HOST, DATA_PORT)
-    response = data.recv(1024)
+    
     # list
     if COMMAND == "-l":
+        listing = data.recv(1024)
         print "Receiving directory structure from " + HOST + ":" + DATA_PORT
-        print response
+        print listing
+
     # get
     if COMMAND == "-g":
-        fo = open(FILENAME, 'w')
+        # filesize = data.recv(1024)
+        # filecontents = data.recv(filesize)
+        response = data.recv(1024)
+        fo = open(FILENAME, 'wb')
         print 'Receiving "' + FILENAME + '" from ' + HOST + ":" + DATA_PORT
         print "File transfer complete"
         fo.write(response)
