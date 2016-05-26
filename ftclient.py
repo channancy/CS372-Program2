@@ -4,7 +4,9 @@ CS 372
 
 Program 2
 
-Source cited: https://docs.python.org/2/library/socket.html
+Sources cited:
+https://docs.python.org/2/library/socket.html
+http://stackoverflow.com/questions/9390126/pythonic-way-to-check-if-something-exists
 """
 
 import socket
@@ -40,6 +42,23 @@ def initiateContact(host, port):
     # Return socket
     return s
 
+def makeRequest(HOST, COMMAND, FILENAME, DATA_PORT):
+    """
+    Send a request to the server
+    """
+    # Send command
+    control.sendall(COMMAND)
+
+    # Confirm that server received command
+    response = control.recv(1024)
+
+    # Send command
+    if response == COMMAND:
+        if COMMAND == "-l":
+            control.sendall(HOST + " " + COMMAND + " " + DATA_PORT)
+        if COMMAND == "-g":
+            control.sendall(HOST + " " + COMMAND + " " + FILENAME + " " + DATA_PORT)
+
 #----------------------------------------
 # Main Program
 #----------------------------------------
@@ -62,18 +81,14 @@ else:
 # Connect to control connection
 control = initiateContact(HOST, CONTROL_PORT)
 
-# Send command
-control.sendall(COMMAND)
+# Check if FILENAME is defined
+try:
+    FILENAME
+except NameError:
+    FILENAME = None
 
-# Confirm that server received command
-response = control.recv(1024)
-
-# Send command
-if response == COMMAND:
-    if COMMAND == "-l":
-        control.sendall(HOST + " " + COMMAND + " " + DATA_PORT)
-    if COMMAND == "-g":
-        control.sendall(HOST + " " + COMMAND + " " + FILENAME + " " + DATA_PORT)
+# Send request to server
+makeRequest(HOST, COMMAND, FILENAME, DATA_PORT)
 
 # Response indicates on which connection to receive (control/data)
 response = control.recv(1024)
