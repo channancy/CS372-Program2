@@ -14,26 +14,32 @@ import sys
 def initiateContact(host, port):
     """
     Create a socket given a host and port
-    Supports both IPv4 and IPv6
+    Connect to the socket
+    Both IPv4 and IPv6 are supported
     """
     s = None
+
     # Try to connect to all addresses returned as a result of the name resolution
     for res in socket.getaddrinfo(host, port, socket.AF_UNSPEC, socket.SOCK_STREAM):
         af, socktype, proto, canonname, sa = res
+        
+        # Socket call
         try:
-            # Socket call
             s = socket.socket(af, socktype, proto)
         except socket.error as msg:
             s = None
             continue
+        
+        # Connect call
         try:
-            # Connect call
             s.connect(sa)
         except socket.error as msg:
             s.close()
             s = None
             continue
+        
         break
+    
     if s is None:
         print "Error: Could not open socket on port " + port
         sys.exit(1)
@@ -43,7 +49,7 @@ def initiateContact(host, port):
 
 def makeRequest():
     """
-    Send a request to the server
+    Send a request to server
     """
     # Send command
     control.sendall(COMMAND)
@@ -51,7 +57,7 @@ def makeRequest():
     # Confirm that server received command
     response = control.recv(1024)
 
-    # Send command
+    # Send details of command
     if response == COMMAND:
         if COMMAND == "-l":
             control.sendall(HOST + " " + COMMAND + " " + DATA_PORT)
@@ -59,19 +65,22 @@ def makeRequest():
             control.sendall(HOST + " " + COMMAND + " " + FILENAME + " " + DATA_PORT)
 
 def receiveFile():
+    """
+    Receive requested file from server
+    """
     # Receive file size
     filesize = int(control.recv(1024))
 
+    # Initialize variables to be concatenated/incremented
     filecontents = ""
     bytes_sent_total = 0
 
     print 'Receiving "' + FILENAME + '" from ' + HOST + ":" + DATA_PORT
 
-    # Receive file contents
+    # Receive file contents in increments of 1000 until reach file size
     while bytes_sent_total < filesize:
         filecontents += data.recv(1000)
         bytes_sent_total += 1000
-        # print "bytes_sent_total: " + str(bytes_sent_total)
 
     # Create a file
     fo = open(FILENAME, 'wb')
@@ -85,17 +94,23 @@ def receiveFile():
 # Main Program
 #----------------------------------------
 
+# Check command line arguments
+# Length of 5 means filename not included
 if len(sys.argv) == 5:
     HOST            = sys.argv[1]
     CONTROL_PORT    = sys.argv[2]
     COMMAND         = sys.argv[3]
     DATA_PORT       = sys.argv[4]
+
+# Length of 6 means filename was included
 elif len(sys.argv) == 6:
     HOST            = sys.argv[1]
     CONTROL_PORT    = sys.argv[2]
     COMMAND         = sys.argv[3]
     FILENAME        = sys.argv[4]
     DATA_PORT       = sys.argv[5]
+
+# Improper usage
 else:
     print "Usage: python " + sys.argv[0] + " <server host> <server port> <command: -l | -g filename> <data port>"
     exit(1)
@@ -114,13 +129,13 @@ if response == "DATA":
     # Connect to data connection
     data = initiateContact(HOST, DATA_PORT)
     
-    # list
+    # list command
     if COMMAND == "-l":
         listing = data.recv(1024)
         print "Receiving directory structure from " + HOST + ":" + DATA_PORT
         print listing
 
-    # get
+    # get command
     if COMMAND == "-g":
         receiveFile()
 
