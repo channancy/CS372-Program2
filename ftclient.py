@@ -100,13 +100,21 @@ if response == "DATA":
     # get
     if COMMAND == "-g":
         # Receive file size
-        filesize = control.recv(1024)
-        # Receive file contents
-        filecontents = data.recv(int(filesize))
-        # Create a file
-        fo = open(FILENAME, 'wb')
+        filesize = int(control.recv(1024))
+
+        filecontents = ""
+        bytes_sent_total = 0
 
         print 'Receiving "' + FILENAME + '" from ' + HOST + ":" + DATA_PORT
+
+        # Receive file contents
+        while bytes_sent_total < filesize:
+            filecontents += data.recv(1000)
+            bytes_sent_total += 1000
+            # print "bytes_sent_total: " + str(bytes_sent_total)
+        
+        # Create a file
+        fo = open(FILENAME, 'wb')
         
         # Write file contents to file
         fo.write(filecontents)
