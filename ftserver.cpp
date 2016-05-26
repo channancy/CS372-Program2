@@ -317,7 +317,8 @@ void handleRequest(int new_fd, char* portno) {
         int fd = open(const_filename, O_RDONLY);
         // If cannot open file for reading, print error and exit
         if (fd == -1) {
-            cout << "File does not exist" << endl;
+            cout << "File not found. Sending error message to " << host << ":" << portno << endl;
+            sendMessage("FILE NOT FOUND", new_fd);
             exit(1);
         }
 

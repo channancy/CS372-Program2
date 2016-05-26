@@ -107,8 +107,15 @@ def receiveFile():
     """
     Receive requested file from server
     """
-    # Receive file size
-    filesize = int(control.recv(1024))
+    response = control.recv(1024)
+
+    # If response is an integer, then response is file size
+    if response.isdigit():
+        filesize = int(response)
+    # Else response is error message
+    else:
+        print HOST + ":" + CONTROL_PORT + " says " + response
+        exit(1)
 
     # Initialize variables to be concatenated/incremented
     filecontents = ""
