@@ -42,6 +42,8 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 #include <signal.h>
+ // File control options
+#include <fcntl.h>
 using namespace std;
 
 // Number of pending connections queue will hold
@@ -261,6 +263,9 @@ void handleRequest(int new_fd, char* portno) {
         exit(1);
     }
 
+    // Null-terminate
+    buffer[numbytes] = '\0';
+
     // Convert buffer to stringstream to read from
     istringstream StrStream(buffer);
 
@@ -305,9 +310,41 @@ void handleRequest(int new_fd, char* portno) {
     }
 
     if (command == "-g") {
+    
+        const char* const_filename = filename.c_str();
+        int fd = open(const_filename, O_RDONLY);
+        // If cannot open file for reading, print error and exit
+        if (fd == -1) {
+            cout << "File does not exist" << endl;
+            exit(1);
+        }
+        int r = read(fd, buffer, MAXDATASIZE);
+        int bytes_to_send = strlen(buffer);
+        int bytes_sent_total = 0;
+        int bytes_sent;
+        // Loop to ensure receive/send routines finishes job before continuing
+        // Break transmission every 1000 characters
+        while (bytes_sent_total != bytes_to_send) {
+
+            if (bytes_to_send - bytes_sent_total < 1000) {
+                bytes_sent = send(data_new_fd, buffer + bytes_sent_total, (bytes_to_send - bytes_sent_total), 0);
+            }
+            else {
+                bytes_sent = send(data_new_fd, buffer + bytes_sent_total, 1000, 0);
+            }
+
+            if (bytes_sent < 0) {
+                perror("ERROR sending to socket");
+                exit(1);
+            }
+
+            bytes_sent_total = bytes_sent_total + bytes_sent;
+        }
         cout << "File \"" << filename << "\" requested on port " << data_port << endl;
         cout << "Sending \"" << filename << "\" to " << host << ":" << data_port << endl;
-        sendMessage("DUMMY TEXT", data_new_fd);
+        // sendMessage("DUMMY TEXT", data_new_fd);
+        close(data_new_fd);
+        exit(0);
     }
 }
 

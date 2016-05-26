@@ -6,7 +6,6 @@ Program 2
 
 Sources cited:
 https://docs.python.org/2/library/socket.html
-http://stackoverflow.com/questions/9390126/pythonic-way-to-check-if-something-exists
 """
 
 import socket
@@ -42,7 +41,7 @@ def initiateContact(host, port):
     # Return socket
     return s
 
-def makeRequest(HOST, COMMAND, FILENAME, DATA_PORT):
+def makeRequest():
     """
     Send a request to the server
     """
@@ -81,14 +80,8 @@ else:
 # Connect to control connection
 control = initiateContact(HOST, CONTROL_PORT)
 
-# Check if FILENAME is defined
-try:
-    FILENAME
-except NameError:
-    FILENAME = None
-
 # Send request to server
-makeRequest(HOST, COMMAND, FILENAME, DATA_PORT)
+makeRequest()
 
 # Response indicates on which connection to receive (control/data)
 response = control.recv(1024)
@@ -102,9 +95,12 @@ if response == "DATA":
     if COMMAND == "-l":
         print "Receiving directory structure from " + HOST + ":" + DATA_PORT
         print response
+    # get
     if COMMAND == "-g":
+        fo = open(FILENAME, 'w')
         print 'Receiving "' + FILENAME + '" from ' + HOST + ":" + DATA_PORT
         print "File transfer complete"
+        fo.write(response)
 
 # Close control connection
 control.close()
