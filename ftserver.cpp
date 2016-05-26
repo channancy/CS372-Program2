@@ -23,6 +23,7 @@
  * http://stackoverflow.com/questions/612097/how-can-i-get-the-list-of-files-in-a-directory-using-c-or-c
  * http://stackoverflow.com/questions/20265328/readdir-beginning-with-dots-instead-of-files
  * http://cboard.cprogramming.com/cplusplus-programming/130444-how-do-you-split-string-multiple-words-into-single-words.html
+ * http://stackoverflow.com/questions/3138600/correct-use-of-stat-on-c
  */
 
 #include <iostream>
@@ -310,6 +311,7 @@ void handleRequest(int new_fd, char* portno) {
         exit(0);
     }
 
+    // get
     if (command == "-g") {
         const char* const_filename = filename.c_str();
         int fd = open(const_filename, O_RDONLY);
@@ -319,23 +321,34 @@ void handleRequest(int new_fd, char* portno) {
             exit(1);
         }
 
+        cout << "File \"" << filename << "\" requested on port " << data_port << endl;
+
+        // Get filesize
         struct stat st;
-
-        // stat() returns -1 on error. Skipping check in this example
         stat(const_filename, &st);
-        // printf("File size: %d bytes\n", st.st_size);
+        int filesize = st.st_size;
 
-        char contents[st.st_size];
+        // Declare contents of filesize length
+        char contents[filesize];
+        // Read file contents
+        int r = read(fd, contents, filesize);
 
-        int r = read(fd, contents, st.st_size);
-
+        // Variables for send loop
         int bytes_to_send = strlen(contents);
-
-        cout << "bytes_to_send: " << bytes_to_send << endl;
-
         int bytes_sent_total = 0;
         int bytes_sent;
 
+        // Convert bytes_to_send from int to string
+        stringstream ss;
+        ss << bytes_to_send;
+        string converted_bytes_to_send = ss.str();
+
+        // Send bytes_to_send on control connection
+        sendMessage(converted_bytes_to_send, new_fd);
+
+        cout << "Sending \"" << filename << "\" to " << host << ":" << data_port << endl;
+
+        // Send contents on data connection
         // Loop to ensure receive/send routines finishes job before continuing
         // Break transmission every 1000 characters
         while (bytes_sent_total != bytes_to_send) {
@@ -354,10 +367,8 @@ void handleRequest(int new_fd, char* portno) {
 
             bytes_sent_total = bytes_sent_total + bytes_sent;
         }
-        
-        cout << "File \"" << filename << "\" requested on port " << data_port << endl;
-        cout << "Sending \"" << filename << "\" to " << host << ":" << data_port << endl;
-        // sendMessage("DUMMY TEXT", data_new_fd);
+
+        // Close data connection
         close(data_new_fd);
         exit(0);
     }

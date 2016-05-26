@@ -99,13 +99,20 @@ if response == "DATA":
 
     # get
     if COMMAND == "-g":
-        # filesize = data.recv(1024)
-        # filecontents = data.recv(filesize)
-        response = data.recv(1024)
+        # Receive file size
+        filesize = control.recv(1024)
+        # Receive file contents
+        filecontents = data.recv(int(filesize))
+        # Create a file
         fo = open(FILENAME, 'wb')
+
         print 'Receiving "' + FILENAME + '" from ' + HOST + ":" + DATA_PORT
+        
+        # Write file contents to file
+        fo.write(filecontents)
+
         print "File transfer complete"
-        fo.write(response)
 
 # Close control connection
 control.close()
+exit(0)
