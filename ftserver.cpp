@@ -23,6 +23,7 @@
  * http://stackoverflow.com/questions/612097/how-can-i-get-the-list-of-files-in-a-directory-using-c-or-c
  * http://stackoverflow.com/questions/20265328/readdir-beginning-with-dots-instead-of-files
  * http://cboard.cprogramming.com/cplusplus-programming/130444-how-do-you-split-string-multiple-words-into-single-words.html
+ * http://stackoverflow.com/questions/12862739/convert-string-to-char
  * http://stackoverflow.com/questions/3138600/correct-use-of-stat-on-c
  */
 
@@ -65,7 +66,7 @@ void *get_in_addr(struct sockaddr *sa);
 int main(int argc, char *argv[]) {
     int sockfd, new_fd; // Listen on sockfd, new connection on new_fd
     char* portno;       // Port number
-    string type;        // Control/Data
+    string type;        // Connection type: control/data
 
     // Check command line arguments count
     // argv[0] = Program name
@@ -74,15 +75,6 @@ int main(int argc, char *argv[]) {
        fprintf(stderr, "Usage: %s <port number>\n", argv[0]);
        exit(1);
     }
-
-    // Validate parameter
-    // int valid = 1;
-    // for (int i = 0; i < strlen(argv[1]); i++) {
-    //     if (!isdigit(argv[1][i])) {
-    //         valid = 0;
-    //         break;
-    //     }
-    // }
 
     // Validate parameter
     int port = atoi(argv[1]);
@@ -225,12 +217,6 @@ int acceptConnection(int sockfd, string type) {
         getnameinfo((struct sockaddr *)&their_addr, sin_size, host, sizeof host, service, sizeof service, 0);
         cout << "Connection from " << host << endl;
     }
-    
-    // Convert IPv4/IPv6 addresses from binary to text form
-    // inet_ntop(their_addr.ss_family,
-    //     get_in_addr((struct sockaddr *)&their_addr),
-    //     s, sizeof s);
-    // printf("Connection from %s\n", s);
 
     return new_fd;
 }
@@ -246,7 +232,6 @@ void handleRequest(int new_fd, char* portno) {
     char* data_port;
 
     // Receive command only
-    // recv returns number of bytes read into the buffer
     if ((numbytes = recv(new_fd, buffer, MAXDATASIZE - 1, 0)) == -1) {
         perror("recv");
         exit(1);
@@ -255,7 +240,7 @@ void handleRequest(int new_fd, char* portno) {
     // Null-terminate
     buffer[numbytes] = '\0';
 
-    // Acknowledge receipt of buffer
+    // Acknowledge receipt of command
     string bufferstr(buffer);
     sendMessage(bufferstr, new_fd);
 
@@ -300,8 +285,7 @@ void handleRequest(int new_fd, char* portno) {
     // Accept connection on data connection
     data_new_fd = acceptConnection(data_fd, type);
 
-    // Check command
-    // list
+    // list command
     if (command == "-l") {
         cout << "List directory requested on port " << data_port << endl;
         listing = listDirectory();
@@ -311,7 +295,7 @@ void handleRequest(int new_fd, char* portno) {
         exit(0);
     }
 
-    // get
+    // get command
     if (command == "-g") {
         const char* const_filename = filename.c_str();
         int fd = open(const_filename, O_RDONLY);
@@ -377,7 +361,7 @@ void handleRequest(int new_fd, char* portno) {
 
 /* sendMessage
  * 
- * Send message over stream socket
+ * Send message to socket
  */
 void sendMessage(string message, int new_fd) {
     const char* msg = message.c_str();
