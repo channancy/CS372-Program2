@@ -105,8 +105,8 @@ def makeRequest():
     """
     # Get host name
     CLIENT_HOST = socket.gethostname()
+    # 
     CLIENT_HOST = CLIENT_HOST.partition('.')[0]
-    print "CLIENT_HOST " + CLIENT_HOST
 
     # Send command
     control.sendall(COMMAND)
@@ -132,14 +132,14 @@ def receiveFile():
         filesize = int(response)
     # Else response is error message
     else:
-        print HOST + ":" + CONTROL_PORT + " says " + response
+        print SERVER_HOST + ":" + CONTROL_PORT + " says " + response
         exit(1)
 
     # Initialize variables to be concatenated/incremented
     filecontents = ""
     bytes_sent_total = 0
 
-    print 'Receiving "' + FILENAME + '" from ' + HOST + ":" + DATA_PORT
+    print 'Receiving "' + FILENAME + '" from ' + SERVER_HOST + ":" + DATA_PORT
 
     # Empty the file (write mode to overwrite)
     open(FILENAME, 'w').close()
@@ -167,7 +167,7 @@ def receiveFile():
 # Validate command line arguments
 # Length of 5 means filename not included
 if len(sys.argv) == 5:
-    HOST            = sys.argv[1]
+    SERVER_HOST     = sys.argv[1]
     CONTROL_PORT    = sys.argv[2]
     COMMAND         = sys.argv[3]
     DATA_PORT       = sys.argv[4]
@@ -177,7 +177,7 @@ if len(sys.argv) == 5:
 
 # Length of 6 means filename was included
 elif len(sys.argv) == 6:
-    HOST            = sys.argv[1]
+    SERVER_HOST     = sys.argv[1]
     CONTROL_PORT    = sys.argv[2]
     COMMAND         = sys.argv[3]
     FILENAME        = sys.argv[4]
@@ -208,7 +208,7 @@ else:
     exit(1)
 
 # Connect to control connection
-control = initiateContact(HOST, CONTROL_PORT)
+control = initiateContact(SERVER_HOST, CONTROL_PORT)
 
 # Send request to server
 makeRequest()
@@ -219,12 +219,12 @@ response = control.recv(1024)
 # Receive on data connection
 if response == "DATA":
     # Connect to data connection
-    data = initiateContact(HOST, DATA_PORT)
+    data = initiateContact(SERVER_HOST, DATA_PORT)
     
     # list command
     if COMMAND == "-l":
         listing = data.recv(1024)
-        print "Receiving directory structure from " + HOST + ":" + DATA_PORT
+        print "Receiving directory structure from " + SERVER_HOST + ":" + DATA_PORT
         print listing
 
     # get command
