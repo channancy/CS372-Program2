@@ -58,6 +58,11 @@ def validateParameters(target_command):
         valid = False
         print "Data port must be an integer between 1024 and 65535"
 
+    # Control and data ports must be different
+    if CONTROL_PORT == DATA_PORT:
+        valid = False
+        print "Control port and data port cannot be the same"
+
     # Check if failed any requirements
     if valid == False:
         print "Usage: python " + sys.argv[0] + " <server host> <server port> <command: -l | -g filename> <data port>"
