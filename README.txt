@@ -25,7 +25,3 @@ Requesting a file:
 python ftclient.py flip1 50123 -g shortfile.txt 40321
 
 6. Terminate ftserver with Ctrl+C
-
-
-
-
