@@ -302,6 +302,7 @@ void handleRequest(int new_fd, char* portno) {
 
     // get command
     if (command == "-g") {
+        // Send contents of file
         sendFile(filename, data_port, host, portno, new_fd, data_new_fd);
     }
 
