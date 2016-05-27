@@ -19,6 +19,7 @@ Description: File Transfer Client
 Sources cited:
 https://docs.python.org/2/library/socket.html
 http://stackoverflow.com/questions/82831/how-to-check-whether-a-file-exists-using-python
+http://stackoverflow.com/questions/15851568/how-to-get-the-last-part-of-a-string-before-a-certain-character
 """
 
 import socket
@@ -102,6 +103,11 @@ def makeRequest():
     """
     Send a request to server
     """
+    # Get host name
+    CLIENT_HOST = socket.gethostname()
+    CLIENT_HOST = CLIENT_HOST.partition('.')[0]
+    print "CLIENT_HOST " + CLIENT_HOST
+
     # Send command
     control.sendall(COMMAND)
 
@@ -111,9 +117,9 @@ def makeRequest():
     # Send details of command
     if response == COMMAND:
         if COMMAND == "-l":
-            control.sendall(HOST + " " + COMMAND + " " + DATA_PORT)
+            control.sendall(CLIENT_HOST + " " + COMMAND + " " + DATA_PORT)
         if COMMAND == "-g":
-            control.sendall(HOST + " " + COMMAND + " " + FILENAME + " " + DATA_PORT)
+            control.sendall(CLIENT_HOST + " " + COMMAND + " " + FILENAME + " " + DATA_PORT)
 
 def receiveFile():
     """
