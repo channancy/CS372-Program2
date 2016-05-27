@@ -13,7 +13,7 @@
  * - Establishes a TCP control connection (P) with the client
  * - Interprets client commands and sends control messages on P
  * - Establishes a TCP data connection (Q) with the client
- * - Sends either a directory listing or contents of a file on Q
+ * - Sends either a directory listing or contents of a text file on Q
  * - Closes Q
  * - Repeats until terminated by a supervisor
  *

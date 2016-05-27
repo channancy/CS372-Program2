@@ -12,7 +12,7 @@ Description: File Transfer Client
 - Establishes a TCP control connection (P) with the server
 - Sends commands and receives control messages on P
 - Establishes a TCP data connection (Q) with the server
-- Receives either a directory listing or contents of a file on Q
+- Receives either a directory listing or contents of a text file on Q
 - Saves the contents to a file, handling duplicate filenames if necessary
 - Closes P
 
@@ -174,15 +174,20 @@ elif len(sys.argv) == 6:
     # Should be get command
     validateParameters("-g")
 
+    # Check extension of file
+    if not FILENAME.endswith(".txt"):
+        print "Requested file must be a text file"
+        exit(1)
+
     # Handle duplicate file
     if os.path.isfile(FILENAME):
-        print FILENAME + " already exists in the directory. Overwrite the file? (y/n)"
+        print '"' + FILENAME + '" already exists in the directory. Overwrite the file? (y/n)'
         overwrite = raw_input()
         # Case insensitive comparison
         if overwrite.lower() == "y":
-            print FILENAME + " will be requested and overwritten."
+            print '"' + FILENAME + '" will be requested and overwritten'
         else:
-            print FILENAME + " will not be requested. Exiting now."
+            print 'Request for "' + FILENAME + '" has been cancelled'
             exit(0)
 
 # Improper usage
