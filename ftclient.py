@@ -105,7 +105,7 @@ def makeRequest():
     """
     # Get host name
     CLIENT_HOST = socket.gethostname()
-    # 
+    # Get first part of host name
     CLIENT_HOST = CLIENT_HOST.partition('.')[0]
 
     # Send command
