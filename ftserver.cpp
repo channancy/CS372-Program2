@@ -311,6 +311,47 @@ void handleRequest(int new_fd, char* portno) {
     exit(0);
 }
 
+/* listDirectory
+ * 
+ * Get directory listing
+ */
+string listDirectory() {
+    DIR *d;
+    struct dirent *dir;
+    // Open current directory
+    // opendir() returns pointer to directory stream or NULL on error
+    d = opendir(".");
+    string listing;
+
+    // Not NULL so we have a pointer to the directory stream
+    if (d) {
+        // Print all files and directories within the directory
+        /* readdir() function returns a pointer to a dirent structure representing the
+        next directory entry in the directory stream pointed to by dirp. It returns
+        NULL on reaching the end of the directory stream or if an error occurred (linux man)*/
+        while ((dir = readdir(d)) != NULL) {
+            // Do not print current and parent hardlinks (. and ..)
+            if (strcmp(dir->d_name, ".") == 0 || strcmp(dir->d_name, "..") == 0) {
+            
+            }
+            else {
+                // Print the filename
+                // char d_name[256] is the filename variable of the struct
+                listing += dir->d_name;
+                listing += "\n";
+            }
+        }
+
+        // Remove the last newline character that was added
+        listing.pop_back();
+     
+        // Close directory
+        closedir(d);
+    }
+
+    return listing;
+}
+
 /* sendFile
  * 
  * Send file to socket
@@ -392,47 +433,6 @@ void sendMessage(string message, int new_fd) {
         perror("send");
         exit(1);
     }
-}
-
-/* listDirectory
- * 
- * Get directory listing
- */
-string listDirectory() {
-    DIR *d;
-    struct dirent *dir;
-    // Open current directory
-    // opendir() returns pointer to directory stream or NULL on error
-    d = opendir(".");
-    string listing;
-
-    // Not NULL so we have a pointer to the directory stream
-    if (d) {
-        // Print all files and directories within the directory
-        /* readdir() function returns a pointer to a dirent structure representing the
-        next directory entry in the directory stream pointed to by dirp. It returns
-        NULL on reaching the end of the directory stream or if an error occurred (linux man)*/
-        while ((dir = readdir(d)) != NULL) {
-            // Do not print current and parent hardlinks (. and ..)
-            if (strcmp(dir->d_name, ".") == 0 || strcmp(dir->d_name, "..") == 0) {
-            
-            }
-            else {
-                // Print the filename
-                // char d_name[256] is the filename variable of the struct
-                listing += dir->d_name;
-                listing += "\n";
-            }
-        }
-
-        // Remove the last newline character that was added
-        listing.pop_back();
-     
-        // Close directory
-        closedir(d);
-    }
-
-    return listing;
 }
 
 /* sigchld_handler
