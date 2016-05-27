@@ -4,7 +4,7 @@ Program 2
 Description: A simple 2-connection client-server file transfer system
 
 Instructions:
-1. Place ftserver.cpp in one folder.
+1. Place ftserver.cpp and text files in one folder.
 2. Place ftclient.py in another folder.
 
 3. Compile ftserver.cpp with:
