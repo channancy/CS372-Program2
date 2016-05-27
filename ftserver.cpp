@@ -105,13 +105,10 @@ int main(int argc, char *argv[]) {
         // Child process
         if (!fork()) { 
             // Child does not need the listener
-            // close(sockfd);
+            close(sockfd);
             // Handle request from client
             handleRequest(new_fd, portno);
         }
-
-        // Parent does not need this
-        // close(new_fd);
     }
 
     return 0;
@@ -136,10 +133,6 @@ int startUp(char* portno) {
     hints.ai_socktype = SOCK_STREAM;    // TCP stream sockets
     hints.ai_flags = AI_PASSIVE;        // Assign my IP address
 
-    cout << "getaddrinfo" << endl;
-
-    cout << "portno: " << portno << endl;
-
     // getaddrinfo(IP address, port number, struct addrinfo, results)
     // IP address is NULL because hints.ai_flags = AI_PASSIVE
     // servinfo (results) will point to linked list of 1+ struct addrinfo
@@ -148,13 +141,11 @@ int startUp(char* portno) {
         exit(1);
     }
 
-    cout << "socket" << endl;
-
     // Walk through servinfo (results) linked list
     for (p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
                 p->ai_protocol)) == -1) {
-            perror("server: socket");
+            perror("socket");
             continue;
         }
 
@@ -165,12 +156,10 @@ int startUp(char* portno) {
             exit(1);
         }
 
-        cout << "bind" << endl;
-
         // Bind to the first valid one
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
             close(sockfd);
-            perror("server: bind");
+            perror("bind");
             continue;
         }
 
@@ -185,15 +174,11 @@ int startUp(char* portno) {
         exit(1);
     }
 
-    cout << "listen" << endl;
-
     // Wait for incoming connections
     if (listen(sockfd, BACKLOG) == -1) {
         perror("listen");
         exit(1);
     }
-
-    cout << "Reap" << endl;
 
     // Reap all dead processes
     sa.sa_handler = sigchld_handler;
@@ -203,8 +188,6 @@ int startUp(char* portno) {
         perror("sigaction");
         exit(1);
     }
-
-    cout << "Return sockfd" << endl;
 
     return sockfd;
 }
@@ -263,8 +246,6 @@ void handleRequest(int new_fd, char* portno) {
     string bufferstr(buffer);
     sendMessage(bufferstr, new_fd);
 
-    cout << "bufferstr: " << bufferstr << endl;
-
     // Receive full request
     if ((numbytes = recv(new_fd, buffer, MAXDATASIZE - 1, 0)) == -1) {
         perror("recv");
@@ -276,8 +257,6 @@ void handleRequest(int new_fd, char* portno) {
 
     // Convert buffer to stringstream to read from
     istringstream StrStream(buffer);
-
-    cout << "Before extraction" << endl;
 
     // list: extract host, command, data port
     if (bufferstr == "-l") {
@@ -294,27 +273,19 @@ void handleRequest(int new_fd, char* portno) {
         StrStream >> temp_port;
     }
 
-    cout << "After extraction" << endl;
-
     // Convert data port from string to const char* to char*
     const char* const_temp_port = temp_port.c_str();
     strcpy(data_port, const_temp_port);
 
-    cout << "data_port: " << data_port << endl;
-
     // Start data connection
     data_fd = startUp(data_port);
     type = "DATA";
-
-    cout << "After starting data connection" << endl;
 
     // Tell client to connect to data connection
     sendMessage("DATA", new_fd);
 
     // Accept connection on data connection
     data_new_fd = acceptConnection(data_fd, type);
-
-    cout << "After accepting data connection" << endl;
 
     // list command
     if (command == "-l") {
@@ -327,22 +298,22 @@ void handleRequest(int new_fd, char* portno) {
         
         // Send directory listing
         sendMessage(listing, data_new_fd);
-        
-        // Close data connection
-        close(data_new_fd);
-        exit(0);
     }
 
     // get command
     if (command == "-g") {
         sendFile(filename, data_port, host, portno, new_fd, data_new_fd);
-
-        // Close data connection
-        close(data_new_fd);
-        exit(0);
     }
+
+    // Close data connection
+    close(data_new_fd);
+    exit(0);
 }
 
+/* sendFile
+ * 
+ * Send file to socket
+ */
 void sendFile(string filename, char* data_port, string host, char* portno, int new_fd, int data_new_fd) {
     // Convert from string to const char*
     const char* const_filename = filename.c_str();
@@ -368,7 +339,7 @@ void sendFile(string filename, char* data_port, string host, char* portno, int n
     // Read file contents
     int r = read(fd, contents, filesize);
     if (r == -1) {
-        cout << "Error reading file" << endl;
+        perror("read");
         exit(1);
     }
 
@@ -400,16 +371,12 @@ void sendFile(string filename, char* data_port, string host, char* portno, int n
         }
 
         if (bytes_sent < 0) {
-            perror("ERROR sending to socket");
+            perror("send");
             exit(1);
         }
 
         bytes_sent_total = bytes_sent_total + bytes_sent;
     }
-
-    // Close data connection
-    close(data_new_fd);
-    exit(0);
 }
 
 /* sendMessage
@@ -422,6 +389,7 @@ void sendMessage(string message, int new_fd) {
     // send returns number of bytes actually sent out
     if (send(new_fd, msg, strlen(msg), 0) == -1) {
         perror("send");
+        exit(1);
     }
 }
 
