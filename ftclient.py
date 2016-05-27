@@ -135,16 +135,22 @@ def receiveFile():
 
     print 'Receiving "' + FILENAME + '" from ' + HOST + ":" + DATA_PORT
 
+    # Empty the file (write mode to overwrite)
+    open(FILENAME, 'w').close()
+
+    # Open the file (append mode to append as more contents received)
+    fo = open(FILENAME, 'a')
+
     # Receive file contents in increments of 1000 until reach file size
     while bytes_sent_total < filesize:
-        filecontents += data.recv(1000)
+        filecontents = data.recv(1000)
+        # Write file contents to file
+        fo.write(filecontents)
+        # Update total
         bytes_sent_total += 1000
 
-    # Create a file
-    fo = open(FILENAME, 'wb')
-
-    # Write file contents to file
-    fo.write(filecontents)
+    # Close the file
+    fo.close()
 
     print "File transfer complete"
 
