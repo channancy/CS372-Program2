@@ -310,6 +310,8 @@ void handleRequest(int new_fd, char* portno) {
         // Convert from string to const char*
         const char* const_filename = filename.c_str();
 
+        cout << "File \"" << filename << "\" requested on port " << data_port << endl;
+
         // Open file
         int fd = open(const_filename, O_RDONLY);
         // If cannot open file for reading
@@ -318,8 +320,6 @@ void handleRequest(int new_fd, char* portno) {
             sendMessage("FILE NOT FOUND", new_fd);
             exit(1);
         }
-
-        cout << "File \"" << filename << "\" requested on port " << data_port << endl;
 
         // Get filesize
         struct stat st;
@@ -332,7 +332,7 @@ void handleRequest(int new_fd, char* portno) {
         int r = read(fd, contents, filesize);
         if (r == -1) {
             cout << "Error reading file" << endl;
-            exit(1)
+            exit(1);
         }
 
         // Variables for send loop

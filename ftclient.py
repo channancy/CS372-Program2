@@ -13,6 +13,7 @@ Description: File Transfer Client
 - Sends commands and receives control messages on P
 - Establishes a TCP data connection (Q) with the server
 - Receives either a directory listing or contents of a file on Q
+- Saves the contents to a file, handling duplicate filenames if necessary
 - Closes P
 
 Sources cited:
