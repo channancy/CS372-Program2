@@ -63,6 +63,7 @@ int startUp(char* portno);
 int acceptConnection(int sockfd, string type);
 void handleRequest(int new_fd, char* portno);
 string listDirectory();
+void sendFile(string filename, char* data_port, string host, char* portno, int new_fd, int data_new_fd);
 void sendMessage(string message, int new_fd);
 void sigchld_handler(int s);
 void *get_in_addr(struct sockaddr *sa);
@@ -104,13 +105,13 @@ int main(int argc, char *argv[]) {
         // Child process
         if (!fork()) { 
             // Child does not need the listener
-            close(sockfd);
+            // close(sockfd);
             // Handle request from client
             handleRequest(new_fd, portno);
         }
 
         // Parent does not need this
-        close(new_fd);
+        // close(new_fd);
     }
 
     return 0;
@@ -130,9 +131,14 @@ int startUp(char* portno) {
     int rv;                             // Return value of getaddrinfo()
 
     memset(&hints, 0, sizeof hints);    // Make sure struct is empty
+    memset(&servinfo, 0, sizeof servinfo);
     hints.ai_family = AF_UNSPEC;        // IP version-agnostic (IPv4 OR IPv6)
     hints.ai_socktype = SOCK_STREAM;    // TCP stream sockets
     hints.ai_flags = AI_PASSIVE;        // Assign my IP address
+
+    cout << "getaddrinfo" << endl;
+
+    cout << "portno: " << portno << endl;
 
     // getaddrinfo(IP address, port number, struct addrinfo, results)
     // IP address is NULL because hints.ai_flags = AI_PASSIVE
@@ -141,6 +147,8 @@ int startUp(char* portno) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         exit(1);
     }
+
+    cout << "socket" << endl;
 
     // Walk through servinfo (results) linked list
     for (p = servinfo; p != NULL; p = p->ai_next) {
@@ -156,6 +164,8 @@ int startUp(char* portno) {
             perror("setsockopt");
             exit(1);
         }
+
+        cout << "bind" << endl;
 
         // Bind to the first valid one
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
@@ -175,11 +185,15 @@ int startUp(char* portno) {
         exit(1);
     }
 
+    cout << "listen" << endl;
+
     // Wait for incoming connections
     if (listen(sockfd, BACKLOG) == -1) {
         perror("listen");
         exit(1);
     }
+
+    cout << "Reap" << endl;
 
     // Reap all dead processes
     sa.sa_handler = sigchld_handler;
@@ -189,6 +203,8 @@ int startUp(char* portno) {
         perror("sigaction");
         exit(1);
     }
+
+    cout << "Return sockfd" << endl;
 
     return sockfd;
 }
@@ -247,6 +263,8 @@ void handleRequest(int new_fd, char* portno) {
     string bufferstr(buffer);
     sendMessage(bufferstr, new_fd);
 
+    cout << "bufferstr: " << bufferstr << endl;
+
     // Receive full request
     if ((numbytes = recv(new_fd, buffer, MAXDATASIZE - 1, 0)) == -1) {
         perror("recv");
@@ -258,6 +276,8 @@ void handleRequest(int new_fd, char* portno) {
 
     // Convert buffer to stringstream to read from
     istringstream StrStream(buffer);
+
+    cout << "Before extraction" << endl;
 
     // list: extract host, command, data port
     if (bufferstr == "-l") {
@@ -274,19 +294,27 @@ void handleRequest(int new_fd, char* portno) {
         StrStream >> temp_port;
     }
 
+    cout << "After extraction" << endl;
+
     // Convert data port from string to const char* to char*
     const char* const_temp_port = temp_port.c_str();
     strcpy(data_port, const_temp_port);
 
+    cout << "data_port: " << data_port << endl;
+
     // Start data connection
     data_fd = startUp(data_port);
     type = "DATA";
+
+    cout << "After starting data connection" << endl;
 
     // Tell client to connect to data connection
     sendMessage("DATA", new_fd);
 
     // Accept connection on data connection
     data_new_fd = acceptConnection(data_fd, type);
+
+    cout << "After accepting data connection" << endl;
 
     // list command
     if (command == "-l") {
@@ -307,73 +335,81 @@ void handleRequest(int new_fd, char* portno) {
 
     // get command
     if (command == "-g") {
-        // Convert from string to const char*
-        const char* const_filename = filename.c_str();
-
-        cout << "File \"" << filename << "\" requested on port " << data_port << endl;
-
-        // Open file
-        int fd = open(const_filename, O_RDONLY);
-        // If cannot open file for reading
-        if (fd == -1) {
-            cout << "File not found. Sending error message to " << host << ":" << portno << endl;
-            sendMessage("FILE NOT FOUND", new_fd);
-            exit(1);
-        }
-
-        // Get filesize
-        struct stat st;
-        stat(const_filename, &st);
-        int filesize = st.st_size;
-
-        // Declare contents of filesize length
-        char contents[filesize];
-        // Read file contents
-        int r = read(fd, contents, filesize);
-        if (r == -1) {
-            cout << "Error reading file" << endl;
-            exit(1);
-        }
-
-        // Variables for send loop
-        int bytes_to_send = strlen(contents);
-        int bytes_sent_total = 0;
-        int bytes_sent;
-
-        // Convert bytes_to_send from int to string
-        stringstream ss;
-        ss << bytes_to_send;
-        string converted_bytes_to_send = ss.str();
-
-        // Send bytes_to_send on control connection
-        sendMessage(converted_bytes_to_send, new_fd);
-
-        cout << "Sending \"" << filename << "\" to " << host << ":" << data_port << endl;
-
-        // Send contents on data connection
-        // Loop to ensure receive/send routines finishes job before continuing
-        // Break transmission every 1000 characters
-        while (bytes_sent_total != bytes_to_send) {
-
-            if (bytes_to_send - bytes_sent_total < 1000) {
-                bytes_sent = send(data_new_fd, contents + bytes_sent_total, (bytes_to_send - bytes_sent_total), 0);
-            }
-            else {
-                bytes_sent = send(data_new_fd, contents + bytes_sent_total, 1000, 0);
-            }
-
-            if (bytes_sent < 0) {
-                perror("ERROR sending to socket");
-                exit(1);
-            }
-
-            bytes_sent_total = bytes_sent_total + bytes_sent;
-        }
+        sendFile(filename, data_port, host, portno, new_fd, data_new_fd);
 
         // Close data connection
         close(data_new_fd);
         exit(0);
     }
+}
+
+void sendFile(string filename, char* data_port, string host, char* portno, int new_fd, int data_new_fd) {
+    // Convert from string to const char*
+    const char* const_filename = filename.c_str();
+
+    cout << "File \"" << filename << "\" requested on port " << data_port << endl;
+
+    // Open file
+    int fd = open(const_filename, O_RDONLY);
+    // If cannot open file for reading
+    if (fd == -1) {
+        cout << "File not found. Sending error message to " << host << ":" << portno << endl;
+        sendMessage("FILE NOT FOUND", new_fd);
+        exit(1);
+    }
+
+    // Get filesize
+    struct stat st;
+    stat(const_filename, &st);
+    int filesize = st.st_size;
+
+    // Declare contents of filesize length
+    char contents[filesize];
+    // Read file contents
+    int r = read(fd, contents, filesize);
+    if (r == -1) {
+        cout << "Error reading file" << endl;
+        exit(1);
+    }
+
+    // Variables for send loop
+    int bytes_to_send = strlen(contents);
+    int bytes_sent_total = 0;
+    int bytes_sent;
+
+    // Convert bytes_to_send from int to string
+    stringstream ss;
+    ss << bytes_to_send;
+    string converted_bytes_to_send = ss.str();
+
+    // Send bytes_to_send on control connection
+    sendMessage(converted_bytes_to_send, new_fd);
+
+    cout << "Sending \"" << filename << "\" to " << host << ":" << data_port << endl;
+
+    // Send contents on data connection
+    // Loop to ensure receive/send routines finishes job before continuing
+    // Break transmission every 1000 characters
+    while (bytes_sent_total != bytes_to_send) {
+
+        if (bytes_to_send - bytes_sent_total < 1000) {
+            bytes_sent = send(data_new_fd, contents + bytes_sent_total, (bytes_to_send - bytes_sent_total), 0);
+        }
+        else {
+            bytes_sent = send(data_new_fd, contents + bytes_sent_total, 1000, 0);
+        }
+
+        if (bytes_sent < 0) {
+            perror("ERROR sending to socket");
+            exit(1);
+        }
+
+        bytes_sent_total = bytes_sent_total + bytes_sent;
+    }
+
+    // Close data connection
+    close(data_new_fd);
+    exit(0);
 }
 
 /* sendMessage
