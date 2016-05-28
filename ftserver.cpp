@@ -29,6 +29,7 @@
  * http://stackoverflow.com/questions/3138600/correct-use-of-stat-on-c
  * https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Registered_ports
  * https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic.2C_private_or_ephemeral_ports
+ * https://blog.udemy.com/fread-c/
  */
 
 #include <iostream>
@@ -357,15 +358,17 @@ string listDirectory() {
  * Send file to socket
  */
 void sendFile(string filename, char* data_port, string host, char* portno, int new_fd, int data_new_fd) {
+    FILE *fp; // File pointer
+
     // Convert from string to const char*
     const char* const_filename = filename.c_str();
 
     cout << "File \"" << filename << "\" requested on port " << data_port << endl;
 
     // Open file
-    int fd = open(const_filename, O_RDONLY);
+    fp = fopen(const_filename, "r");
     // If cannot open file for reading
-    if (fd == -1) {
+    if (fp == NULL) {
         cout << "File not found. Sending error message to " << host << ":" << portno << endl;
         sendMessage("FILE NOT FOUND", new_fd);
         exit(1);
@@ -376,19 +379,35 @@ void sendFile(string filename, char* data_port, string host, char* portno, int n
     stat(const_filename, &st);
     int filesize = st.st_size;
 
+    cout << "filesize: " << filesize << endl;
+
+    // fseek (fp, 0, SEEK_END);
+    // long filesize = ftell(fp);
+    // rewind (fp);
+
     // Declare contents of filesize length
-    char contents[filesize];
+    // char contents[filesize];
+    char* contents = (char*) malloc (sizeof(char)*filesize);
     // Read file contents
-    int r = read(fd, contents, filesize);
-    if (r == -1) {
+    // 1st parameter = Holds data read
+    // 2nd parameter = size of a single element (1)
+    // 3rd parameter = number of elements to read
+    // 4th parameter = file stream to read from
+    size_t bytes_read = fread(contents, 1, filesize, fp);
+    if (bytes_read != filesize) {
         perror("read");
         exit(1);
     }
+
+    // Close file
+    fclose(fp);
 
     // Variables for send loop
     int bytes_to_send = strlen(contents);
     int bytes_sent_total = 0;
     int bytes_sent;
+
+    cout << "bytes_to_send: " << bytes_to_send << endl;
 
     // Convert bytes_to_send from int to string
     stringstream ss;
