@@ -142,7 +142,7 @@ def receiveFile():
 
     # Initialize variables to be concatenated/incremented
     filecontents = ""
-    bytes_sent_total = 0
+    bytes_recv_total = 0
 
     print 'Receiving "' + FILENAME + '" from ' + SERVER_HOST + ":" + DATA_PORT
 
@@ -152,13 +152,13 @@ def receiveFile():
     # Open the file (append mode to append as more contents received)
     fo = open(FILENAME, 'a')
 
-    # Receive file contents in increments of 1000 until reach file size
-    while bytes_sent_total < filesize:
-        filecontents = data.recv(1000)
+    # Receive file contents in increments of 100 until reach file size
+    while bytes_recv_total < filesize:
+        filecontents = data.recv(100)
         # Write file contents to file
         fo.write(filecontents)
         # Update total
-        bytes_sent_total += 1000
+        bytes_recv_total += 100
 
     # Close the file
     fo.close()

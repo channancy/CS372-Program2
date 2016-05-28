@@ -379,12 +379,6 @@ void sendFile(string filename, char* data_port, string host, char* portno, int n
     stat(const_filename, &st);
     int filesize = st.st_size;
 
-    cout << "filesize: " << filesize << endl;
-
-    // fseek (fp, 0, SEEK_END);
-    // long filesize = ftell(fp);
-    // rewind (fp);
-
     // Declare contents of filesize length
     // char contents[filesize];
     char* contents = (char*) malloc (sizeof(char)*filesize);
@@ -407,8 +401,6 @@ void sendFile(string filename, char* data_port, string host, char* portno, int n
     int bytes_sent_total = 0;
     int bytes_sent;
 
-    cout << "bytes_to_send: " << bytes_to_send << endl;
-
     // Convert bytes_to_send from int to string
     stringstream ss;
     ss << bytes_to_send;
@@ -421,14 +413,14 @@ void sendFile(string filename, char* data_port, string host, char* portno, int n
 
     // Send contents on data connection
     // Loop to ensure receive/send routines finishes job before continuing
-    // Break transmission every 1000 characters
+    // Break transmission every 100 characters
     while (bytes_sent_total != bytes_to_send) {
 
-        if (bytes_to_send - bytes_sent_total < 1000) {
+        if (bytes_to_send - bytes_sent_total < 100) {
             bytes_sent = send(data_new_fd, contents + bytes_sent_total, (bytes_to_send - bytes_sent_total), 0);
         }
         else {
-            bytes_sent = send(data_new_fd, contents + bytes_sent_total, 1000, 0);
+            bytes_sent = send(data_new_fd, contents + bytes_sent_total, 100, 0);
         }
 
         if (bytes_sent < 0) {
